@@ -1,0 +1,10 @@
+//
+// Created by victor_ponomarenko on 25.07.16.
+//
+
+#ifndef JNI3RDPARTYLIBSAMPLE_JNI_3RD_PARTY_LIB_H
+#define JNI3RDPARTYLIBSAMPLE_JNI_3RD_PARTY_LIB_H
+
+void test();
+
+#endif //JNI3RDPARTYLIBSAMPLE_JNI_3RD_PARTY_LIB_H
