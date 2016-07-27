@@ -1,6 +1,10 @@
 #include <jni.h>
 #include <android/log.h>
-#include <exception>
+#include <stdexcept>
+#include <libavutil/imgutils.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
 
 extern "C" {
     #include "jni-3rd-party-lib.h"
@@ -255,6 +259,35 @@ extern "C" {
 
 using namespace std;
 
+void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame)
+{
+
+    FILE *pFile;
+    char szFilename[32];
+    int  y;
+
+    // Open file
+    sprintf(szFilename, "/sdcard/videoFrames/frame%d.ppm", iFrame);
+    pFile=fopen(szFilename, "wb");
+    if(pFile==NULL) {
+        return;
+    }
+
+    LOGI("filename is: %s", szFilename);
+
+    // Write header
+    fprintf(pFile, "P6\n%d %d\n255\n", width, height);
+
+    // Write pixel data
+    for(y=0; y<height; y++)
+    {
+        fwrite(pFrame->data[0]+y*pFrame->linesize[0], 1, width*3, pFile);
+    }
+
+    // Close file
+    fclose(pFile);
+}
+
 void throwJavaException(JNIEnv *env, jobject instance, const char *errorMessage)
 {
     jclass exceptionClass = env->FindClass("java/lang/RuntimeException");
@@ -268,14 +301,19 @@ void throwJavaException(JNIEnv *env, jobject instance, const char *errorMessage)
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_tk_davinctor_jni3rdpartylibsample_MainActivity_getNativeString(JNIEnv *env, jobject instance)
-{
+Java_tk_davinctor_jni3rdpartylibsample_MainActivity_getNativeString(JNIEnv *env, jobject instance) {
     try {
         test();
+    } catch (const char* e) {
+        LOGE(e);
+        throwJavaException(env, instance, e);
     } catch (std::exception e) {
-        LOGI(e.what());
+        LOGE(e.what());
         throwJavaException(env, instance, e.what());
-    };
+    } catch (std::runtime_error error) {
+        LOGE(error.what());
+        throwJavaException(env, instance, error.what());
+    }
 
 
     return env->NewStringUTF("Hello from fucking jni");
