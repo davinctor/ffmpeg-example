@@ -5,6 +5,7 @@
 #include <libswscale/swscale.h>
 
 #define LOG_TAG "ffmpeg-sample"
+#define FRAME_COUNT 10
 
 #define LOGI(...) \
   ((void)__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__))
@@ -33,7 +34,9 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame)
 
     // Write pixel data
     for(y=0; y<height; y++)
+    {
         fwrite(pFrame->data[0]+y*pFrame->linesize[0], 1, width*3, pFile);
+    }
 
     // Close file
     fclose(pFile);
@@ -90,11 +93,6 @@ void test() {
         return;
     }
 
-
-
-    // Get a pointer to the codec context for the video stream
-    //pCodecCtx = pFormatCtx->streams[videoStream]->codec;
-
     // Find the decoder for the video stream
     pCodec= avcodec_find_decoder(pFormatCtx->streams[videoStream]->codecpar->codec_id);
     if(pCodec==NULL) {
@@ -103,7 +101,8 @@ void test() {
         return;
     }
 
-    pCodecCtx = avcodec_alloc_context3(pCodec);
+    //pCodecCtx = avcodec_alloc_context3(pCodec);
+    pCodecCtx = pFormatCtx->streams[videoStream]->codec;//avcodec_alloc_context3(pCodec);
 
     // Open codec
     if(avcodec_open2(pCodecCtx, pCodec, &optionsDict)<0) {
@@ -119,7 +118,7 @@ void test() {
     if(pFrameRGB==NULL) {
         LOGE("pFragmeRGB == null");
         return;
-     }
+    }
 
     // Determine required buffer size and allocate buffer
     numBytes=av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height, 1);
@@ -164,10 +163,10 @@ void test() {
                           pCodecCtx->height,
                           pFrameRGB->data,
                           pFrameRGB->linesize
-                        );
+                );
 
                 // Save the frame to disk
-                if(++i <= 40) {
+                if(++i <= FRAME_COUNT) {
                     SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height, i);
                 } else {
                     break;
