@@ -36,7 +36,7 @@ set(SOURCES
 set(HEADERS
     ${CMAKE_SOURCE_DIR}/jni-3rd-party-lib.h)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -frtti -fexceptions -Wno-error=format-security")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -frtti -fexceptions")
 add_library(jni_lib SHARED ${HEADERS} ${SOURCES})
 
 target_link_libraries(jni_lib

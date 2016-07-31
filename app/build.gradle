@@ -15,13 +15,13 @@ android {
 
         externalNativeBuild {
             cmake {
+//                Available arguments
 //                targets "target1", "target2"
 //                arguments "-DANDROID_TOOLCHAIN=clang"
 //                cFlags "-DTEST_C_FLAG1", "-DTEST_C_FLAG2"
 //                cppFlags "-DTEST_CPP_FLAG2", "-DTEST_CPP_FLAG2"
 //                abiFilters "armeabi-v7a", "armeabi"
-                //arguments "-DANDROID_TOOLCHAIN=clang"
-                cppFlags "-Wformat-security"
+//                arguments "-DANDROID_TOOLCHAIN=clang"
                 abiFilters 'armeabi', 'armeabi-v7a'
             }
         }
