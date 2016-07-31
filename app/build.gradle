@@ -21,7 +21,7 @@ android {
 //                cppFlags "-DTEST_CPP_FLAG2", "-DTEST_CPP_FLAG2"
 //                abiFilters "armeabi-v7a", "armeabi"
                 //arguments "-DANDROID_TOOLCHAIN=clang"
-                cppFlags "-std=c++11 -frtti -fexceptions"
+                cppFlags "-Wformat-security"
                 abiFilters 'armeabi', 'armeabi-v7a'
             }
         }
@@ -50,6 +50,10 @@ android {
             path 'src/main/cpp/CMakeLists.txt'
         }
     }
+}
+
+android.lintOptions {
+    abortOnError  = false
 }
 
 dependencies {
