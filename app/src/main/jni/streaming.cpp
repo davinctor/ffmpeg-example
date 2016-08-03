@@ -1,260 +1,63 @@
 #include <jni.h>
 #include <android/log.h>
+#include <android/bitmap.h>
 #include <exception>
+#include <string>
 
 extern "C" {
-    #include "jni-3rd-party-lib.h"
+#include "jni-3rd-party-lib.h"
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/time.h>
 }
 
-//using namespace std;
-//
-//#define STREAM_DURATION   20
-//#define STREAM_FRAME_RATE 25 /* 25 images/s */
-//#define STREAM_PIX_FMT  AV_PIX_FMT_YUV420P /* default pix_fmt */ //AV_PIX_FMT_NV12;
-//#define VIDEO_CODEC_ID CODEC_ID_H264
-//
-//static int video_is_eof;
-//
-///* video output */
-//static AVFrame *frame;
-//static AVPicture src_picture, dst_picture;
-//
-///* Add an output stream. */
-//static AVStream *add_stream(AVFormatContext *oc, AVCodec ** codec, enum AVCodecID codec_id) {
-//    AVCodecContext *c;
-//    AVStream *st;
-//
-//    /* find the encoder */
-//    * codec = avcodec_find_encoder(codec_id);
-//    if (!(*codec)) {
-//        av_log(NULL, AV_LOG_ERROR, "Could not find encoder for '%s'.\n", avcodec_get_name(codec_id));
-//    }
-//    else {
-//        st = avformat_new_stream(oc, *codec);
-//        if (!st) {
-//            av_log(NULL, AV_LOG_ERROR, "Could not allocate stream.\n");
-//        }
-//        else {
-//            st->id = oc->nb_streams - 1;
-//            st->time_base.den = st->pts.den = 90000;
-//            st->time_base.num = st->pts.num = 1;
-//
-//            c = st->codec;
-//            c->codec_id = codec_id;
-//            c->bit_rate = 400000;
-//            c->width = 352;
-//            c->height = 288;
-//            c->time_base.den = STREAM_FRAME_RATE;
-//            c->time_base.num = 1;
-//            c->gop_size = 12; /* emit one intra frame every twelve frames at most */
-//            c->pix_fmt = STREAM_PIX_FMT;
-//        }
-//    }
-//
-//    return st;
-//}
-//
-//static int open_video(AVFormatContext *oc, AVCodec *codec, AVStream *st)
-//{
-//    int ret;
-//    AVCodecContext *c = st->codec;
-//
-//    /* open the codec */
-//    ret = avcodec_open2(c, codec, NULL);
-//    if (ret < 0) {
-//        av_log(NULL, AV_LOG_ERROR, "Could not open video codec.\n", avcodec_get_name(c->codec_id));
-//    }
-//    else {
-//
-//        /* allocate and init a re-usable frame */
-//        frame = av_frame_alloc();
-//        if (!frame) {
-//            av_log(NULL, AV_LOG_ERROR, "Could not allocate video frame.\n");
-//            ret = -1;
-//        }
-//        else {
-//            frame->format = c->pix_fmt;
-//            frame->width = c->width;
-//            frame->height = c->height;
-//
-//            /* Allocate the encoded raw picture. */
-//            ret = avpicture_alloc(&dst_picture, c->pix_fmt, c->width, c->height);
-//            if (ret < 0) {
-//                av_log(NULL, AV_LOG_ERROR, "Could not allocate picture.\n");
-//            }
-//            else {
-//                /* copy data and linesize picture pointers to frame */
-//                *((AVPicture *)frame) = dst_picture;
-//            }
-//        }
-//    }
-//
-//    return ret;
-//}
-//
-///* Prepare a dummy image. */
-//static void fill_yuv_image(AVPicture *pict, int frame_index, int width, int height)
-//{
-//    int x, y, i;
-//
-//    i = frame_index;
-//
-//    /* Y */
-//    for (y = 0; y < height; y++)
-//        for (x = 0; x < width; x++)
-//            pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
-//
-//    /* Cb and Cr */
-//    for (y = 0; y < height / 2; y++) {
-//        for (x = 0; x < width / 2; x++) {
-//            pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
-//            pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
-//        }
-//    }
-//}
-//
-//static int write_video_frame(AVFormatContext *oc, AVStream *st, int frameCount)
-//{
-//    int ret = 0;
-//    AVCodecContext *c = st->codec;
-//
-//    fill_yuv_image(&dst_picture, frameCount, c->width, c->height);
-//
-//    AVPacket pkt = { 0 };
-//    int got_packet;
-//    av_init_packet(&pkt);
-//
-//    /* encode the image */
-//    frame->pts = frameCount;
-//    ret = avcodec_encode_video2(c, &pkt, frame, &got_packet);
-//    if (ret < 0) {
-//        av_log(NULL, AV_LOG_ERROR, "Error encoding video frame.\n");
-//    }
-//    else {
-//        if (got_packet) {
-//            pkt.stream_index = st->index;
-//            pkt.pts = av_rescale_q_rnd(pkt.pts, c->time_base, st->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-//            ret = av_write_frame(oc, &pkt);
-//
-//            if (ret < 0) {
-//                av_log(NULL, AV_LOG_ERROR, "Error while writing video frame.\n");
-//            }
-//        }
-//    }
-//
-//    return ret;
-//}
-//
-//int _tmain(int argc, char* argv[])
-//{
-//    printf("starting...\n");
-//
-//    const char *url = "rtsp://test:password@192.168.33.19:1935/ffmpeg/0";
-//    //const char *url = "rtsp://192.168.33.19:1935/ffmpeg/0";
-//
-//    AVFormatContext *outContext;
-//    AVStream *video_st;
-//    AVCodec *video_codec;
-//    int ret = 0, frameCount = 0;
-//
-//    av_log_set_level(AV_LOG_DEBUG);
-//    //av_log_set_level(AV_LOG_TRACE);
-//
-//    av_register_all();
-//    avformat_network_init();
-//
-//    avformat_alloc_output_context2(&outContext, NULL, "rtsp", url);
-//
-//    if (!outContext) {
-//        av_log(NULL, AV_LOG_FATAL, "Could not allocate an output context for '%s'.\n", url);
-//        goto end;
-//    }
-//
-//    if (!outContext->oformat) {
-//        av_log(NULL, AV_LOG_FATAL, "Could not create the output format for '%s'.\n", url);
-//        goto end;
-//    }
-//
-//    video_st = add_stream(outContext, &video_codec, VIDEO_CODEC_ID);
-//
-//    /* Now that all the parameters are set, we can open the video codec and allocate the necessary encode buffers. */
-//    if (video_st) {
-//        av_log(NULL, AV_LOG_DEBUG, "Video stream codec %s.\n ", avcodec_get_name(video_st->codec->codec_id));
-//
-//        ret = open_video(outContext, video_codec, video_st);
-//        if (ret < 0) {
-//            av_log(NULL, AV_LOG_FATAL, "Open video stream failed.\n");
-//            goto end;
-//        }
-//    }
-//    else {
-//        av_log(NULL, AV_LOG_FATAL, "Add video stream for the codec '%s' failed.\n", avcodec_get_name(VIDEO_CODEC_ID));
-//        goto end;
-//    }
-//
-//    av_dump_format(outContext, 0, url, 1);
-//
-//    ret = avformat_write_header(outContext, NULL);
-//    if (ret != 0) {
-//        av_log(NULL, AV_LOG_ERROR, "Failed to connect to RTSP server for '%s'.\n", url);
-//        goto end;
-//    }
-//
-//    printf("Press any key to start streaming...\n");
-//    getchar();
-//
-//    auto startSend = std::chrono::system_clock::now();
-//
-//    while (video_st) {
-//        frameCount++;
-//        auto startFrame = std::chrono::system_clock::now();
-//
-//        ret = write_video_frame(outContext, video_st, frameCount);
-//
-//        if (ret < 0) {
-//            av_log(NULL, AV_LOG_ERROR, "Write video frame failed.\n", url);
-//            goto end;
-//        }
-//
-//        auto streamDuration = std::chrono::duration_cast<chrono::milliseconds>(std::chrono::system_clock::now() - startSend).count();
-//
-//        printf("Elapsed time %ldms, video stream pts %ld.\n", streamDuration, video_st->pts.val);
-//
-//        if (streamDuration / 1000.0 > STREAM_DURATION) {
-//            break;
-//        }
-//        else {
-//            auto frameDuration = std::chrono::duration_cast<chrono::milliseconds>(std::chrono::system_clock::now() - startFrame).count();
-//            std::this_thread::sleep_for(std::chrono::milliseconds((long)(1000.0 / STREAM_FRAME_RATE - frameDuration)));
-//        }
-//    }
-//
-//    if (video_st) {
-//        avcodec_close(video_st->codec);
-//        av_free(src_picture.data[0]);
-//        av_free(dst_picture.data[0]);
-//        av_frame_free(&frame);
-//    }
-//
-//    avformat_free_context(outContext);
-//
-//    end:
-//    printf("finished.\n");
-//
-//    getchar();
-//
-//    return 0;
-//}
-
-#define LOG_TAG "jni_cpp_file"
+#define LOG_TAG "ffmpeg_wrapper"
 
 #define LOGI(...) \
   ((void)__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__))
 #define LOGE(...) \
   ((void)__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__))
 
-using namespace std;
+typedef struct VideoState {
+    AVFormatContext *pFormatContext;
+    AVStream *pVideoStream;
+    int videoStreamIdx;
 
+    AVFrame *pFrame; // stored the decoded frame
+    int fint;
+    int64_t  nextFrameTime; // track next frame display time
+    int status;
+} VideoState;
+
+typedef struct VideoDisplayUtil {
+    struct SwsContext *imgResampleCtx;
+    AVFrame *pFrameRGBA;
+    int width;
+    int height;
+    void* pBitmap; // use the bitmap as the pFrameRGBA buffer
+    int frameNum;
+
+} VideoDisplayUtil;
+
+const char* gVideoFilename;
+VideoState  *gVideoState;
+VideoDisplayUtil *gVideoDisplayUtil;
+
+namespace code {
+    int SUCCESS = 0;
+    int ERROR_ALLOCATE_MEMORY = -1;
+    int ERROR_OPEN_FILE = -2;
+    int ERROR_FIND_STREAM_INFO = -3;
+    int ERROR_VIDEO_STREAM_NOT_FOUND = -4;
+    int ERROR_CODEC_NOT_FOUND = -5;
+    int ERROR_OPEN_CODEC = -6;
+}
+
+/**
+ * Throw java exception with specified error message
+ */
 void throwJavaException(JNIEnv *env, jobject instance, const char *errorMessage)
 {
     jclass exceptionClass = env->FindClass("java/lang/RuntimeException");
@@ -267,16 +70,256 @@ void throwJavaException(JNIEnv *env, jobject instance, const char *errorMessage)
     env->ThrowNew(exceptionClass, errorMessage);
 }
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_tk_davinctor_jni3rdpartylibsample_MainActivity_getNativeString(JNIEnv *env, jobject instance)
+/**
+ * Init and load all necessary codecs, open file, find video stream and open codec.
+ * Saved all info to global variables.
+ */
+extern "C" JNIEXPORT jint JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_init(JNIEnv *env,
+                                                          jobject instance,
+                                                          jstring filename)
 {
-    try {
-        test();
-    } catch (std::exception e) {
-        LOGI(e.what());
-        throwJavaException(env, instance, e.what());
-    };
+    gVideoFilename = env->GetStringUTFChars(filename, NULL);
 
+    // Register all formats and codecs
+    av_register_all();
 
-    return env->NewStringUTF("Hello from fucking jni");
+    // Allocate memory for gVideoState
+    gVideoState = (VideoState *) av_mallocz(sizeof(VideoState));
+
+    if (gVideoState == NULL) {
+        LOGE("Can't allocate memory VideoState size");
+        return code::ERROR_ALLOCATE_MEMORY;
+    }
+
+    int resultCode = avformat_open_input(&gVideoState->pFormatContext, gVideoFilename, NULL, NULL);
+    // Open the video file
+    if (resultCode < 0)
+    {
+        LOGE("Couldn't open file %s, because %s", gVideoFilename, av_err2str(resultCode));
+        return code::ERROR_OPEN_FILE;
+    }
+
+    resultCode = avformat_find_stream_info(gVideoState->pFormatContext, NULL);
+    // Retrieve stream info
+    if (resultCode < 0) {
+        LOGE("Couldn't find stream information, because %s", av_err2str(resultCode));
+        return code::ERROR_FIND_STREAM_INFO;
+    }
+
+    // Dump information about file onto standard error
+    av_dump_format(gVideoState->pFormatContext, 0, gVideoFilename, 0 /* is output = false*/);
+
+    // Find video stream
+    gVideoState->videoStreamIdx = -1;
+    for (int i = 0; i < gVideoState->pFormatContext->nb_streams; i++)
+    {
+        if (gVideoState->pFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+        {
+            LOGI("Found video stream");
+            gVideoState->videoStreamIdx = i;
+            gVideoState->pVideoStream = gVideoState->pFormatContext->streams[i];
+            break;
+        }
+    }
+
+    if (gVideoState->videoStreamIdx == -1)
+    {
+        LOGE("Didn't find a video stream");
+        return code::ERROR_VIDEO_STREAM_NOT_FOUND;
+    }
+
+    AVCodecContext *pCodecContext = gVideoState->pVideoStream->codec;
+    // Find codec decoder
+    AVCodec *pCodec = avcodec_find_decoder(gVideoState->pVideoStream->codecpar->codec_id);
+
+    if (pCodec == NULL)
+    {
+        LOGE("Codec not found");
+        return code::ERROR_CODEC_NOT_FOUND;
+    }
+
+    // Open codec
+    resultCode = avcodec_open2(pCodecContext, pCodec, NULL);
+
+    if (resultCode < 0) {
+        LOGE("Couldn't open codec");
+        return code::ERROR_OPEN_CODEC;
+    }
+
+    return code::SUCCESS;
+}
+
+/**
+ * Free resources and close video file
+ */
+extern "C" JNIEXPORT jint JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_finish(JNIEnv *env,
+                                                            jobject instance)
+{
+    // Close codec
+    avcodec_close(gVideoState->pVideoStream->codec);
+    // Close video file
+    avformat_close_input(&gVideoState->pFormatContext);
+    // Free resources
+    av_free(gVideoState);
+
+    return code::SUCCESS;
+}
+
+/**
+ * Returns resolution of video file
+ */
+extern "C" JNIEXPORT jintArray JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_getVideoResolution(JNIEnv *env,
+                                                                        jobject instance)
+{
+    AVCodecParameters *pCodecParameters = gVideoState->pVideoStream->codecpar;
+    jint res[2];
+    res[0] = pCodecParameters->width;
+    res[1] = pCodecParameters->height;
+
+    jintArray resolution = env->NewIntArray(2);
+    env->SetIntArrayRegion(resolution, 0, 2, res);
+    return resolution;
+}
+
+/**
+ * Get duration of video file in seconds
+ */
+extern "C" JNIEXPORT jdouble JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_getVideoDuration(JNIEnv *env,
+                                                                      jobject instance)
+{
+    jdouble duration = (jdouble) (gVideoState->pFormatContext->duration / AV_TIME_BASE);
+    return duration;
+}
+
+/**
+ * Returns frame rate of video file
+ */
+extern "C" JNIEXPORT jdouble JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_getVideoFrameRate(JNIEnv *env,
+                                                                       jobject instance)
+{
+    jdouble frameRate = -1;
+    AVStream *pVideoStream = gVideoState->pVideoStream;
+    if (pVideoStream->avg_frame_rate.den > 0 && pVideoStream->avg_frame_rate.num > 0)
+    {
+        frameRate = av_q2d(pVideoStream->avg_frame_rate);
+    } else if (pVideoStream->r_frame_rate.den > 0 && pVideoStream->r_frame_rate.num > 0)
+    {
+        frameRate = av_q2d(pVideoStream->r_frame_rate);
+    } else if (pVideoStream->time_base.den > 0 && pVideoStream->time_base.num > 0)
+    {
+        frameRate = av_q2d(pVideoStream->time_base);
+    } else if (pVideoStream->codec->time_base.den > 0 && pVideoStream->codec->time_base.num > 0)
+    {
+        frameRate = av_q2d(pVideoStream->codec->time_base);
+    }
+
+    return frameRate;
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpeg_prepareDisplay(JNIEnv *env, jobject pObj, jobject pBitmap,
+                                                             jint width, jint height)
+{
+    gVideoDisplayUtil = (VideoDisplayUtil *) av_mallocz(sizeof(VideoDisplayUtil));
+    if (gVideoDisplayUtil == NULL)
+    {
+        LOGE("Couldn't allocate memory VideoDisplayUtil size");
+        return code::ERROR_ALLOCATE_MEMORY;
+    }
+
+    gVideoState->pFrame = av_frame_alloc();
+    if (gVideoState->pFrame == NULL)
+    {
+        LOGE("Couldn't allocate memory for AVFrame size for frame");
+        return code::ERROR_ALLOCATE_MEMORY;
+    }
+
+    gVideoDisplayUtil->frameNum = 0;
+    gVideoDisplayUtil->width = width;
+    gVideoDisplayUtil->height = height;
+
+    gVideoDisplayUtil->pFrameRGBA = av_frame_alloc();
+    if (gVideoDisplayUtil->pFrameRGBA == NULL)
+    {
+        LOGE("Couldn't allocate memory AVFrame size for frameRGBA");
+        return code::ERROR_ALLOCATE_MEMORY;
+    }
+
+    AndroidBitmapInfo bitmapInfo;
+
+    // Retrieve information about the bitmap
+    AndroidBitmap_getInfo(env, pBitmap, &bitmapInfo);
+    // Lock the pixel buffer and retrieve a pointer to it
+    AndroidBitmap_lockPixels(env, pBitmap, &gVideoDisplayUtil->pBitmap);
+    // Use the bitmap buffer as the buffer for frameRGBA
+    av_image_fill_arrays
+            (gVideoDisplayUtil->pFrameRGBA->data,
+             gVideoDisplayUtil->pFrameRGBA->linesize,
+             (const uint8_t *) gVideoDisplayUtil->pBitmap,
+             AV_PIX_FMT_RGBA,
+             width,
+             height,
+             1);
+    gVideoDisplayUtil->imgResampleCtx = sws_getContext
+            (gVideoState->pVideoStream->codecpar->width,
+                    gVideoState->pVideoStream->codecpar->height,
+                    gVideoState->pVideoStream->codec->pix_fmt,
+                    width,
+                    height,
+                    AV_PIX_FMT_RGBA,
+                    SWS_BICUBIC,
+                    NULL,
+                    NULL,
+                    NULL);
+    gVideoState->nextFrameTime = av_gettime();
+
+    return code::SUCCESS;
+}
+
+extern "C" JNIEXPORT int JNICALL
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_getVideoFrame(JNIEnv *env,
+                                                                   jobject instance)
+{
+    AVPacket packet;
+    // Read frames and decode them
+    int isFrameFinished;
+    int resultCode;
+    while ( !(gVideoState->status) && av_read_frame(gVideoState->pFormatContext, &packet) >= 0)
+    {
+        if (gVideoState->videoStreamIdx == packet.stream_index)
+        {
+            resultCode = avcodec_decode_video2(gVideoState->pVideoStream->codec,
+                                               gVideoState->pFrame, &isFrameFinished, &packet);
+            if (resultCode < 0)
+            {
+                LOGE("Couldn't decode video, because %s", av_err2str(resultCode));
+            }
+            else if (isFrameFinished)
+            {
+                sws_scale(gVideoDisplayUtil->imgResampleCtx,
+                          (const uint8_t *const *) gVideoState->pFrame->data,
+                          gVideoState->pFrame->linesize,
+                          0,
+                          gVideoState->pVideoStream->codecpar->height,
+                          gVideoDisplayUtil->pFrameRGBA->data,
+                          gVideoDisplayUtil->pFrameRGBA->linesize);
+                int64_t curTime = av_gettime();
+                if (gVideoState->nextFrameTime - curTime > 20 * 1000)
+                {
+                    av_usleep((unsigned int) (gVideoState->nextFrameTime - curTime));
+                }
+                ++gVideoDisplayUtil->frameNum;
+                gVideoState->nextFrameTime += gVideoState->fint * 1000;
+                return gVideoDisplayUtil->frameNum;
+            }
+        }
+        av_packet_unref(&packet);
+    }
+
+    return code::SUCCESS;
 }

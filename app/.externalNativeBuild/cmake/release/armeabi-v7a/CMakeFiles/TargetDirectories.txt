@@ -1,0 +1,3 @@
+/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/.externalNativeBuild/cmake/release/armeabi-v7a/CMakeFiles/edit_cache.dir
+/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/.externalNativeBuild/cmake/release/armeabi-v7a/CMakeFiles/rebuild_cache.dir
+/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/.externalNativeBuild/cmake/release/armeabi-v7a/CMakeFiles/jni_lib.dir

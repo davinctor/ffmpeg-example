@@ -66,7 +66,7 @@ void test() {
 
     // Retrieve stream information
     if (avformat_find_stream_info(pFormatCtx, NULL) < 0) {
-        LOGE("Couldn't find stream information");
+        LOGE("Couldn' t find stream information");
         return;
     }
 
@@ -76,7 +76,8 @@ void test() {
     // Find the first video stream
     videoStream = -1;
     for (i = 0; i < pFormatCtx->nb_streams; i++) {
-        if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+        {
             LOGI("Found video stream");
             videoStream = i;
             break;
@@ -90,20 +91,16 @@ void test() {
         return;
     }
 
-
-
     // Get a pointer to the codec context for the video stream
-    //pCodecCtx = pFormatCtx->streams[videoStream]->codec;
+    pCodecCtx = pFormatCtx->streams[videoStream]->codec;
 
     // Find the decoder for the video stream
-    pCodec= avcodec_find_decoder(pFormatCtx->streams[videoStream]->codecpar->codec_id);
+    pCodec= avcodec_find_decoder(pCodecCtx->codec_id);
     if(pCodec==NULL) {
         fprintf(stderr, "Unsupported codec!\n");
         LOGE("Codec not found");
         return;
     }
-
-    pCodecCtx = avcodec_alloc_context3(pCodec);
 
     // Open codec
     if(avcodec_open2(pCodecCtx, pCodec, &optionsDict)<0) {

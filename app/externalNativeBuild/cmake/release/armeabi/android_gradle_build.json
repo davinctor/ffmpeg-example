@@ -1,0 +1,48 @@
+
+{
+	"buildFiles" : 
+	[
+		"/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/CMakeLists.txt"
+	],
+	"cFileExtensions" : [ "c" ],
+	"cleanCommands" : 
+	[
+		"/home/victor_ponomarenko/AndroidSdk/cmake/3.6/bin/cmake --build /home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/externalNativeBuild/cmake/release/armeabi --target clean"
+	],
+	"cppFileExtensions" : [ "cpp" ],
+	"libraries" : 
+	{
+		"jni_lib-Release-armeabi" : 
+		{
+			"abi" : "armeabi",
+			"artifactName" : "jni_lib",
+			"buildCommand" : "/home/victor_ponomarenko/AndroidSdk/cmake/3.6/bin/cmake --build /home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/externalNativeBuild/cmake/release/armeabi --target jni_lib",
+			"buildType" : "release",
+			"files" : 
+			[
+				
+				{
+					"flags" : "  -Djni_lib_EXPORTS -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavcodec/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavfilter/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavformat/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavutil/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libswresample/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libswscale/include -isystem /home/victor_ponomarenko/AndroidSdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include -isystem /home/victor_ponomarenko/AndroidSdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi/include -isystem /home/victor_ponomarenko/AndroidSdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include/backward  -g -DANDROID -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv5te -mtune=xscale -msoft-float -fno-integrated-as -mthumb -Wa,--noexecstack -Wformat -Werror=format-security -fno-exceptions -fno-rtti -Wformat-security -std=c++11 -frtti -fexceptions -Os -DNDEBUG  -fPIC      ",
+					"src" : "/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/streaming.cpp",
+					"workingDirectory" : "/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/externalNativeBuild/cmake/release/armeabi"
+				},
+				
+				{
+					"flags" : " -Djni_lib_EXPORTS -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavcodec/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavfilter/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavformat/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libavutil/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libswresample/include -I/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg/libswscale/include  -g -DANDROID -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv5te -mtune=xscale -msoft-float -fno-integrated-as -mthumb -Wa,--noexecstack -Wformat -Werror=format-security  -Os -DNDEBUG  -fPIC        ",
+					"src" : "/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/src/main/cpp/jni-3rd-party-lib.c",
+					"workingDirectory" : "/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/externalNativeBuild/cmake/release/armeabi"
+				}
+			],
+			"output" : "/home/victor_ponomarenko/AndroidStudioProjects/ffmpeg-example/app/build/intermediates/cmake/release/obj/armeabi/libjni_lib.so",
+			"toolchain" : "18231894339634107495"
+		}
+	},
+	"toolchains" : 
+	{
+		"18231894339634107495" : 
+		{
+			"cCompilerExecutable" : "/home/victor_ponomarenko/AndroidSdk/ndk-bundle/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+			"cppCompilerExecutable" : "/home/victor_ponomarenko/AndroidSdk/ndk-bundle/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+		}
+	}
+}

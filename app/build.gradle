@@ -109,7 +109,7 @@ model {
             stl = 'stlport_static'
             CFlags.addAll([]) // any c flags
             cppFlags.addAll(['-fexceptions','-std=c++11'])
-            ldLibs.addAll(['log'])
+            ldLibs.addAll(['log', 'android', 'jnigraphics'])
             // build a default combined apk including all ABIs.
             abiFilters.addAll(supportedAbis)
         }
@@ -159,5 +159,5 @@ model {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:24.1.0'
+    compile 'com.android.support:appcompat-v7:24.1.1'
 }
