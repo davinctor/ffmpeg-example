@@ -1,8 +1,8 @@
 #include <jni.h>
 #include <android/log.h>
 #include <android/bitmap.h>
-#include <exception>
 #include <string>
+#include <math.h>
 
 extern "C" {
 #include "jni-3rd-party-lib.h"
@@ -26,7 +26,7 @@ typedef struct VideoState {
     int videoStreamIdx;
 
     AVFrame *pFrame; // stored the decoded frame
-    int fint;
+    int frameInterval;
     int64_t  nextFrameTime; // track next frame display time
     int status;
 } VideoState;
@@ -53,6 +53,10 @@ namespace code {
     int ERROR_VIDEO_STREAM_NOT_FOUND = -4;
     int ERROR_CODEC_NOT_FOUND = -5;
     int ERROR_OPEN_CODEC = -6;
+    int ERROR_ANDROID_BITMAP_GET_INFO = -7;
+    int ERROR_ANDROID_BITMAP_WRONG_FORMAT = -8;
+    int ERROR_ANDROID_BITMAP_LOCK_PIXELS = -9;
+    int ERROR_INIT_VIDEO_FRAME_CONVERSION_CONTEXT = -10;
 }
 
 /**
@@ -221,8 +225,38 @@ Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_getVideoFrameRate(JNIEnv *e
     return frameRate;
 }
 
+int getFrameInterval() {
+    double frameInterval = 0;
+    AVStream *pVideoStream = gVideoState->pVideoStream;
+    if (pVideoStream->avg_frame_rate.den > 0 && pVideoStream->avg_frame_rate.num > 0)
+    {
+        frameInterval = 1000 / av_q2d(pVideoStream->avg_frame_rate);
+    } else if (pVideoStream->r_frame_rate.den > 0 && pVideoStream->r_frame_rate.num > 0)
+    {
+        frameInterval = 1000 / av_q2d(pVideoStream->r_frame_rate);
+    } else if (pVideoStream->time_base.den > 0 && pVideoStream->time_base.num > 0)
+    {
+        frameInterval = 1000 * av_q2d(pVideoStream->time_base);
+    } else if (pVideoStream->codec->time_base.den > 0 && pVideoStream->codec->time_base.num > 0)
+    {
+        frameInterval = 1000 * av_q2d(pVideoStream->codec->time_base);
+    }
+
+    if (frameInterval < 20)
+    {
+        frameInterval = 20; // Min interval => max frame rate 1000 / 20 = 50 fps;
+    }
+    else if (frameInterval > 100)
+    {
+        frameInterval = 100; // Max interval => min frame rate 1000 / 100 = 10 fps;
+    }
+
+    return (int) round(frameInterval);
+}
+
 extern "C" JNIEXPORT jint JNICALL
-Java_tk_davinctor_jni3rdpartylibsample_FFmpeg_prepareDisplay(JNIEnv *env, jobject pObj, jobject pBitmap,
+Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_prepareDisplay(JNIEnv *env, jobject pObj,
+                                                             jobject pBitmap,
                                                              jint width, jint height)
 {
     gVideoDisplayUtil = (VideoDisplayUtil *) av_mallocz(sizeof(VideoDisplayUtil));
@@ -239,6 +273,7 @@ Java_tk_davinctor_jni3rdpartylibsample_FFmpeg_prepareDisplay(JNIEnv *env, jobjec
         return code::ERROR_ALLOCATE_MEMORY;
     }
 
+    gVideoState->frameInterval = getFrameInterval();
     gVideoDisplayUtil->frameNum = 0;
     gVideoDisplayUtil->width = width;
     gVideoDisplayUtil->height = height;
@@ -253,10 +288,22 @@ Java_tk_davinctor_jni3rdpartylibsample_FFmpeg_prepareDisplay(JNIEnv *env, jobjec
     AndroidBitmapInfo bitmapInfo;
 
     // Retrieve information about the bitmap
-    AndroidBitmap_getInfo(env, pBitmap, &bitmapInfo);
+    int resultCode = AndroidBitmap_getInfo(env, pBitmap, &bitmapInfo);
+    if (resultCode < 0)
+    {
+        LOGE("AndroidBitmap_getInfo() failed.");
+        return code::ERROR_ANDROID_BITMAP_GET_INFO;
+    }
+
     // Lock the pixel buffer and retrieve a pointer to it
-    AndroidBitmap_lockPixels(env, pBitmap, &gVideoDisplayUtil->pBitmap);
-    // Use the bitmap buffer as the buffer for frameRGBA
+    resultCode = AndroidBitmap_lockPixels(env, pBitmap, &gVideoDisplayUtil->pBitmap);
+    if (resultCode < 0)
+    {
+        LOGE("AndroidBitmap_lockPixels() failed.");
+        return code::ERROR_ANDROID_BITMAP_LOCK_PIXELS;
+    }
+
+    // For android use the bitmap buffer as the buffer for frameRGBA
     av_image_fill_arrays
             (gVideoDisplayUtil->pFrameRGBA->data,
              gVideoDisplayUtil->pFrameRGBA->linesize,
@@ -276,6 +323,12 @@ Java_tk_davinctor_jni3rdpartylibsample_FFmpeg_prepareDisplay(JNIEnv *env, jobjec
                     NULL,
                     NULL,
                     NULL);
+    if (gVideoDisplayUtil->imgResampleCtx == NULL)
+    {
+        LOGE("Error initialize the video frame conversion context");
+        return code::ERROR_INIT_VIDEO_FRAME_CONVERSION_CONTEXT;
+    }
+
     gVideoState->nextFrameTime = av_gettime();
 
     return code::SUCCESS;
@@ -314,7 +367,7 @@ Java_tk_davinctor_jni3rdpartylibsample_FFmpegWrapper_getVideoFrame(JNIEnv *env,
                     av_usleep((unsigned int) (gVideoState->nextFrameTime - curTime));
                 }
                 ++gVideoDisplayUtil->frameNum;
-                gVideoState->nextFrameTime += gVideoState->fint * 1000;
+                gVideoState->nextFrameTime += gVideoState->frameInterval * 1000;
                 return gVideoDisplayUtil->frameNum;
             }
         }

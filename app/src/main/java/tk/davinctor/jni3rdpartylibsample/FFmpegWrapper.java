@@ -26,6 +26,10 @@ public class FFmpegWrapper {
 
     public static native double getVideoFrameRate();
 
+    public static native int prepareDisplay(Object bitmap, int width, int height);
+
+    public static native int getVideoFrame();
+
     public static String getRationaleMessageByResultCode(@ResultCode int resultCode) {
         return ResultCodes.valueOfResultCode(resultCode);
     }
