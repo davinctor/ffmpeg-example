@@ -1,5 +1,5 @@
 //
-// Created by victor_ponomarenko on 08.08.16.
+// Created by victor_ponomarenko on 09.08.16.
 //
 
 #ifndef FFMPEG_EXAMPLE_AUDIO_PLAYER_H
@@ -22,13 +22,12 @@
 #define LOGE(...) \
   ((void)__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__))
 
-namespace codes {
-    int ERROR_CREATE_ENGINE_OBJECT = -1;
+enum codes {
+    ERROR_CREATE_ENGINE_OBJECT = -1
+};
 
-}
+typedef struct AudioPlayer {
 
-class AudioPlayer {
-private:
     // engine interfaces
     SLObjectItf *engineObject;
     SLEngineItf *engine;
@@ -55,44 +54,42 @@ private:
     short *resampledBuffer;
 
     // mutex to guard against re-entrance to record and playback
-    pthread_mutex_t audioEngineLock = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t audioEngineLock;
 
     // aux effect on the output mix, used by the buffer queue player
-    SLEnvironmentalReverbSettings reverbSettings = SL_I3DL2_ENVIRONMENT_PRESET_BATHROOM;
+    SLEnvironmentalReverbSettings reverbSettings;
 
     short *nextBuffer;
     unsigned nextSize;
     int nextCount;
+} AudioPlayer;
 
-public:
-    int createEngine();
-    int destroyEngine();
+int createEngine();
+int destroyEngine();
 
-    short* createResampledBuffer(uint32_t idx, uint32_t srcRate, unsigned *size);
-    void releaseResampledBuffer();
+short* createResampledBuffer(uint32_t idx, uint32_t srcRate, unsigned *size);
+void releaseResampledBuffer();
 
-    void createBufferQueue(jint sampleRate, jint bufferSize);
+void createBufferQueue(jint sampleRate, jint bufferSize);
 
-    /**
-     * This callback handler is called every time a buffer finishes playing
-     */
-    void onBufferPlayFinished(SLAndroidSimpleBufferQueueItf bufferQueue, void *context);
+/**
+ * This callback handler is called every time a buffer finishes playing
+ */
+void onBufferPlayFinished(SLAndroidSimpleBufferQueueItf bufferQueue, void *context);
 
-    void setLooping(bool isLooping);
+void setLooping(int8_t isLooping);
 
-    SLVolumeItf getVolume();
-    void setVolume(int milliBel);
+SLVolumeItf getVolume();
+void setVolume(int milliBel);
 
-    void setMute(bool isMute);
+void setMute(int8_t isMute);
 
-    void setEnableStereoPosition(bool isEnable);
+void setEnableStereoPosition(int8_t isEnable);
 
-    void setStereoPosition(int perMille);
+void setStereoPosition(int perMille);
 
-    void play();
-    void pause();
-    void stop();
-};
-
+void play();
+void pause();
+void stop();
 
 #endif //FFMPEG_EXAMPLE_AUDIO_PLAYER_H

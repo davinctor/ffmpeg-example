@@ -4,3 +4,7 @@
 
 #include "AudioPlayer.h"
 
+int AudioPlayer::createEngine()
+{
+
+}
