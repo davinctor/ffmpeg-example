@@ -11,10 +11,6 @@ import java.lang.annotation.RetentionPolicy;
  */
 public class FFmpegWrapper {
 
-    static {
-        System.loadLibrary("jni_lib");
-    }
-
     @ResultCode
     public static native int init(@NonNull String fileName);
 

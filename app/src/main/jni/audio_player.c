@@ -1,55 +1,52 @@
-
 #include "audio_player.h"
 
-int createEngine(AudioPlayer** audioPlayer)
+int createEngine(AudioPlayer *audioPlayer)
 {
-    SLObjectItf engineObject = (*audioPlayer)->engineObject;
-    SLEngineItf engine = (*audioPlayer)->engine;
-
-    SLresult  result = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
+    SLresult result = slCreateEngine(&audioPlayer->engineObject, 0, NULL, 0, NULL, NULL);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't create engine object");
-        return codes::ERROR_CREATE_ENGINE_OBJECT;
+        return ERROR_CREATE_ENGINE_OBJECT;
     }
     else
     {
         LOGI("Engine object created");
     }
 
-    result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE); // not async
+    result = (*audioPlayer->engineObject)->Realize(audioPlayer->engineObject, SL_BOOLEAN_FALSE); // not async
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't realize engine object");
-        return codes::ERROR_REALIZE_ENGINE_OBJECT;
+        return ERROR_REALIZE_ENGINE_OBJECT;
     }
     else
     {
         LOGI("Engine object realized");
     }
 
-    result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engine);
+    result = (*audioPlayer->engineObject)->GetInterface(audioPlayer->engineObject,
+                                                        SL_IID_ENGINE,
+                                                        &audioPlayer->engine);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't GetInterface of engine");
-        return codes::ERROR_GET_INTERFACE_ENGINE;
+        return ERROR_GET_INTERFACE_ENGINE;
     }
     else
     {
         LOGI("Interface Engine got");
     }
 
-    SLObjectItf outputMixObject = (*audioPlayer)->outputMixObject;
-    SLEnvironmentalReverbItf outputMixEnvironmentalReverb = (*audioPlayer)->outputEnvironmentalReverbItf;
-
     // create output mix, with environmental reverb specified as non-required interface
     const SLInterfaceID ids[1] = {SL_IID_ENVIRONMENTALREVERB};
     const SLboolean req[1] = {SL_BOOLEAN_FALSE};
-    result = (*engine)->CreateOutputMix(engine, &outputMixObject, 1, ids, req);
+    result = (*audioPlayer->engine)->CreateOutputMix(audioPlayer->engine,
+                                                     &audioPlayer->outputMixObject,
+                                                     1, ids, req);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't create output mix object");
-        return codes::ERROR_CREATE_OUTPUT_MIX;
+        return ERROR_CREATE_OUTPUT_MIX;
     }
     else
     {
@@ -57,11 +54,11 @@ int createEngine(AudioPlayer** audioPlayer)
     }
 
     // realize output mix object
-    result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
+    result = (*audioPlayer->outputMixObject)->Realize(audioPlayer->outputMixObject, SL_BOOLEAN_FALSE);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't realize output mix object");
-        return codes::ERROR_REALIZE_OUTPUT_MIX;
+        return ERROR_REALIZE_OUTPUT_MIX;
     }
     else
     {
@@ -72,9 +69,9 @@ int createEngine(AudioPlayer** audioPlayer)
     // this could fail if the environmental reverb effect is not available,
     // either because the feature is not present, excessive CPU load, or
     // the required MODIFY_AUDIO_SETTINGS permission was not requested and granted
-    result = (*outputMixObject)->GetInterface(outputMixObject,
-                                               SL_IID_ENVIRONMENTALREVERB,
-                                               &outputMixEnvironmentalReverb);
+    result = (*audioPlayer->outputMixObject)->GetInterface(audioPlayer->outputMixObject,
+                                                           SL_IID_ENVIRONMENTALREVERB,
+                                                           &audioPlayer->outputEnvironmentalReverbItf);
 
     if (result != SL_RESULT_SUCCESS)
     {
@@ -86,42 +83,181 @@ int createEngine(AudioPlayer** audioPlayer)
         LOGI("Interface EnvironmentalReverb got");
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
 }
 
-int destroyEngine(AudioPlayer **audioPlayer)
+int destroyEngine(AudioPlayer *audioPlayer)
 {
-    SLObjectItf playerObject = (*audioPlayer)->playerObject;
-    if (playerObject != NULL) {
-        (*playerObject)->Destroy(playerObject);
-        (*audioPlayer)->playerPlay = NULL;
-        (*audioPlayer)->playerSeek = NULL;
-        (*audioPlayer)->playerVolume = NULL;
-        (*audioPlayer)->bufferQueue = NULL;
-        (*audioPlayer)->effectSend = NULL;
-        (*audioPlayer)->muteSolo = NULL;
+    if (audioPlayer->playerObject != NULL) {
+        (*audioPlayer->playerObject)->Destroy(audioPlayer->playerObject);
+        audioPlayer->playerPlay = NULL;
+        audioPlayer->playerSeek = NULL;
+        audioPlayer->playerVolume = NULL;
+        audioPlayer->bufferQueue = NULL;
+        audioPlayer->effectSend = NULL;
+        audioPlayer->muteSolo = NULL;
         LOGI("Player destroyed");
     }
 
-    SLObjectItf outputMixObject = (*audioPlayer)->outputMixObject;
-    if (outputMixObject != NULL)
+    if (audioPlayer->outputMixObject != NULL)
     {
-        (*outputMixObject)->Destroy(outputMixObject);
-        (*audioPlayer)->outputMixObject = NULL;
-        (*audioPlayer)->outputEnvironmentalReverbItf = NULL;
+        (*audioPlayer->outputMixObject)->Destroy(audioPlayer->outputMixObject);
+        audioPlayer->outputMixObject = NULL;
+        audioPlayer->outputEnvironmentalReverbItf = NULL;
         LOGI("OutputMix destroyed");
     }
 
-    SLObjectItf engineObject = (*audioPlayer)->engineObject;
-    if (engineObject != NULL)
+    if (audioPlayer->engineObject != NULL)
     {
-        (*engineObject)->Destroy(engineObject);
-        (*audioPlayer)->engineObject = NULL;
-        (*audioPlayer)->engine = NULL;
+        (*audioPlayer->engineObject)->Destroy(audioPlayer->engineObject);
+        audioPlayer->engineObject = NULL;
+        audioPlayer->engine = NULL;
         LOGI("Engine destroyed");
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
+}
+
+int initAssetAudioPlayer(AudioPlayer *audioPlayer, AAssetManager *assetManager, const char* fileName)
+{
+    // use asset manager to open asset by filename
+    AAsset* asset = AAssetManager_open(assetManager, fileName, AASSET_MODE_UNKNOWN);
+
+    // the asset might not be found
+    if (asset == NULL) {
+        LOGE("Couldn't open asset");
+        return ERROR_OPEN_ASSET;
+    }
+
+    // open asset as file descriptor
+    off_t start;
+    off_t length;
+    int fileDescriptor = AAsset_openFileDescriptor(asset, &start, &length);
+    if (fileDescriptor <= 0)
+    {
+        LOGE("Couldn't open file descriptor");
+        return ERROR_OPEN_FILE_DESCRIPTOR;
+    }
+
+    //AAsset_close(asset);
+
+    // configure audio source
+    SLDataLocator_AndroidFD dataLocatorFileDescriptor = {
+            SL_DATALOCATOR_ANDROIDFD,   // SLuint32 locatorType;
+            fileDescriptor,             // SLint32 fd;
+            start,                      // SLAint64 offset;
+            length                      // SLAint64 length;
+    };
+    SLDataFormat_MIME formatMime = {
+            SL_DATAFORMAT_MIME,          // SLuint32 formatType;
+            NULL,                        // SLchar *mimeType;
+            SL_CONTAINERTYPE_UNSPECIFIED // SLuint32 containerType;
+    };
+    SLDataSource audioSrc = {
+            &dataLocatorFileDescriptor,         // void *pLocator;
+            &formatMime                         // void *pFormat;
+    };
+
+    /// Configure audio sink
+    SLDataLocator_OutputMix outputMix = {
+            SL_DATALOCATOR_OUTPUTMIX,       // SLuint32     locatorType;
+            audioPlayer->outputMixObject    // SLObjectItf	outputMix;
+    };
+    SLDataSink audioSink = {
+            &outputMix, // void *pLocator;
+            NULL        // void *pFormat;
+    };
+
+    SLuint32 interfaceNumber = 3;
+    // create audio player
+    const SLInterfaceID interfacesIds[3] = {
+            SL_IID_SEEK,
+            SL_IID_MUTESOLO,
+            SL_IID_VOLUME
+    };
+    const SLboolean requiredInterfaces[3] = {
+            SL_BOOLEAN_TRUE,
+            SL_BOOLEAN_TRUE,
+            SL_BOOLEAN_TRUE
+    };
+
+    SLresult result = (*audioPlayer->engine)->CreateAudioPlayer(audioPlayer->engine,
+                                                                &audioPlayer->playerObject,
+                                                                &audioSrc,
+                                                                &audioSink,
+                                                                interfaceNumber,
+                                                                interfacesIds,
+                                                                requiredInterfaces);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't create audio player");
+        return ERROR_CREATE_AUDIO_PLAYER;
+    }
+
+    // realize the player
+    result = (*audioPlayer->playerObject)->Realize(audioPlayer->playerObject, SL_BOOLEAN_FALSE); // not async
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't realize player object");
+        return ERROR_REALIZE_AUDIO_PLAYER;
+    }
+
+    // get the play interface
+    result = (*audioPlayer->playerObject)->GetInterface(audioPlayer->playerObject, SL_IID_PLAY, &audioPlayer->playerPlay);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't get interface Play");
+        return ERROR_GET_INTERFACE_PLAY;
+    }
+
+    // get the seek interface
+    result = (*audioPlayer->playerObject)->GetInterface(audioPlayer->playerObject, SL_IID_SEEK, &audioPlayer->playerSeek);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't get interface Seek");
+        return ERROR_GET_INTERFACE_SEEK;
+    }
+
+    // get the mute/solo interface
+    result = (*audioPlayer->playerObject)->GetInterface(audioPlayer->playerObject, SL_IID_MUTESOLO, &audioPlayer->muteSolo);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't get interface MuteSolo");
+        return ERROR_GET_INTERFACE_MUTE_SOLO;
+    }
+
+    // get the volume interface
+    result = (*audioPlayer->playerObject)->GetInterface(audioPlayer->playerObject, SL_IID_VOLUME, &audioPlayer->playerVolume);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't get interface Volume");
+        return ERROR_GET_INTERFACE_VOLUME;
+    }
+
+    // enable whole file looping
+    result = (*audioPlayer->playerSeek)->SetLoop(audioPlayer->playerSeek, SL_BOOLEAN_TRUE, 0, SL_TIME_UNKNOWN);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't set loop");
+    }
+
+    return SUCCESS;
+}
+
+void onBufferPlayFinished(SLAndroidSimpleBufferQueueItf bufferQueue, void *context)
+{
+//    AudioPlayer **audioPlayer = (AudioPlayer**) context;
+//
+//    if ((*audioPlayer)->bu != NULL) {
+//        free(player->buffer);
+//        player->buffer = NULL;
+//    }
+//
+//    int len = 4096;
+//    player->buffer = malloc(len);
+//
+//    is->audio_callback(context, player->buffer, len);
+//    enqueue(&is->audio_player, (int16_t *) player->buffer, len);
 }
 
 int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize)
@@ -179,13 +315,13 @@ int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize)
      *     for fast audio case
      */
     SLuint32 numberOfInterfaces = 4;
-    const SLInterfaceID ids[numberOfInterfaces] = {
+    const SLInterfaceID ids[4] = {
             SL_IID_BUFFERQUEUE,
             SL_IID_VOLUME,
             SL_IID_EFFECTSEND,
             SL_IID_MUTESOLO
     };
-    const SLboolean requiredInterfaces[numberOfInterfaces] = {
+    const SLboolean requiredInterfaces[4] = {
             SL_BOOLEAN_TRUE,
             SL_BOOLEAN_TRUE,
             SL_BOOLEAN_TRUE,
@@ -201,7 +337,7 @@ int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize)
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't create audio player");
-        return codes::ERROR_CREATE_AUDIO_PLAYER;
+        return ERROR_CREATE_AUDIO_PLAYER;
     }
 
     // realize player
@@ -209,15 +345,15 @@ int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize)
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't realize audio player");
-        return codes::ERROR_REALIZE_AUDIO_PLAYER;
+        return ERROR_REALIZE_AUDIO_PLAYER;
     }
 
     // get play interface
     result = (*playerObject)->GetInterface(playerObject, SL_IID_PLAY, &(*audioPlayer)->playerPlay);
     if (result != SL_RESULT_SUCCESS)
     {
-        LOGE("Couldn't get interface of Play");
-        return codes::ERROR_GET_INTERFACE_PLAY;
+        LOGE("Couldn't get interface Play");
+        return ERROR_GET_INTERFACE_PLAY;
     }
 
     // get buffer queue interface
@@ -226,14 +362,14 @@ int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize)
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't get interface BufferQueue");
-        return codes::ERROR_GET_INTERFACE_BUFFER_QUEUE;
+        return ERROR_GET_INTERFACE_BUFFER_QUEUE;
     }
     // register callback to a buffer queue
     result = (*bufferQueue)->RegisterCallback(bufferQueue, onBufferPlayFinished, NULL);
     if (result != NULL)
     {
         LOGE("Couldn't register callback for BufferQueue");
-        return codes::ERROR_REGISTER_BUFFER_QUEUE_CALLBACK;
+        return ERROR_REGISTER_BUFFER_QUEUE_CALLBACK;
     }
 
     // get the effect send interface
@@ -253,54 +389,104 @@ int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize)
         LOGE("Couldn't get interface MuteSolo");
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
 }
 
-int play(AudioPlayer **audioPlayer) {
-    SLPlayItf playerPlay = (*audioPlayer)->playerPlay;
-    SLresult result = (*playerPlay)->SetPlayState(playerPlay, SL_PLAYSTATE_PLAYING);
+SLuint32 setPlayingState(AudioPlayer *audioPlayer, SLuint32 playingState) {
+    return (*audioPlayer->playerPlay)->SetPlayState(audioPlayer->playerPlay, playingState);
+}
+
+int play(AudioPlayer *audioPlayer) {
+    SLresult result = setPlayingState(audioPlayer, SL_PLAYSTATE_PLAYING);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't set PlayState to Playing");
-        return codes::ERROR_SET_PLAYING_STATE_TO_PLAYING;
+        return ERROR_SET_PLAYING_STATE_TO_PLAYING;
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
 }
 
-int pause(AudioPlayer **audioPlayer) {
-    SLPlayItf playerPlay = (*audioPlayer)->playerPlay;
-    SLresult result = (*playerPlay)->SetPlayState(playerPlay, SL_PLAYSTATE_PAUSED);
+int pause(AudioPlayer *audioPlayer) {
+    SLresult result = setPlayingState(audioPlayer, SL_PLAYSTATE_PAUSED);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't set PlayState to Paused");
-        return codes::ERROR_SET_PLAYING_STATE_TO_PAUSED;
+        return ERROR_SET_PLAYING_STATE_TO_PAUSED;
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
 }
 
-int stop(AudioPlayer **audioPlayer) {
-    SLPlayItf playerPlay = (*audioPlayer)->playerPlay;
-    SLresult result = (*playerPlay)->SetPlayState(playerPlay, SL_PLAYSTATE_STOPPED);
+int stop(AudioPlayer *audioPlayer) {
+    SLresult result = setPlayingState(audioPlayer, SL_PLAYSTATE_STOPPED);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't set PlayState to stopped");
-        return codes::ERROR_SET_PLAYING_STATE_TO_STOPPED;
+        return ERROR_SET_PLAYING_STATE_TO_STOPPED;
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
 }
 
-int setLooping(AudioPlayer **audioPlayer, bool isLooping)
+int enqueueBufferData(AudioPlayer *audioPlayer, int16_t *data, int size)
 {
-    SLSeekItf playerSeek = (*audioPlayer)->playerSeek;
+    SLAndroidSimpleBufferQueueItf bufferQueue = audioPlayer->bufferQueue;
+    SLresult result = (*bufferQueue)->Enqueue(bufferQueue, data, (SLuint32) size);
+
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't enqueue buffer data");
+        return ERROR_ENQUEUE_BUFFER_DATA;
+    }
+
+    return SUCCESS;
+}
+
+int setLooping(AudioPlayer *audioPlayer, bool isLooping)
+{
+    SLSeekItf playerSeek = audioPlayer->playerSeek;
     SLresult result = (*playerSeek)->SetLoop(playerSeek, (SLboolean) isLooping, 0, SL_TIME_UNKNOWN);
     if (result != SL_RESULT_SUCCESS)
     {
         LOGE("Couldn't set loop for player Seek interface");
-        return codes::ERROR_SET_LOOP;
+        return ERROR_SET_LOOP;
     }
 
-    return codes::SUCCESS;
+    return SUCCESS;
+}
+
+int getVolume(AudioPlayer *audioPlayer)
+{
+    SLVolumeItf volumeItf = audioPlayer->playerVolume;
+    SLmillibel millibelVolumeLevel;
+    SLresult result = (*volumeItf)->GetVolumeLevel(volumeItf, &millibelVolumeLevel);
+
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't get volume");
+        return NO_VALUE;
+    }
+
+    return millibelVolumeLevel;
+}
+
+int setVolume(AudioPlayer *audioPlayer, float volumeFactor)
+{
+    SLVolumeItf playerVolume = audioPlayer->playerVolume;
+
+    //get min & max
+    SLmillibel minVolume = SL_MILLIBEL_MIN;
+    SLmillibel maxVolume = 0;
+    (*playerVolume)->GetMaxVolumeLevel(playerVolume, &maxVolume);
+    float volumeIncreaseValue = ((float)(maxVolume - minVolume)) * volumeFactor;
+    SLmillibel volume = minVolume + (SLmillibel) volumeIncreaseValue;
+    SLresult result = (*playerVolume)->SetVolumeLevel(playerVolume, volume);
+    if (result != SL_RESULT_SUCCESS)
+    {
+        LOGE("Couldn't set volume");
+        return ERROR_SET_VOLUME;
+    }
+
+    return SUCCESS;
 }

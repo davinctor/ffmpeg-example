@@ -68,16 +68,18 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         int viewHeight = getHeight();
         float scaleFactor = 1.0f;
 
-        if (fWidth / viewWidth > height / viewHeight) {
-            // fit width
-            scaleFactor = fWidth / viewWidth;
-            this.left = 0;
-            this.top = (int) ((viewHeight - fHeight / scaleFactor) / 2f);
-        } else {
-            // fit height
-            scaleFactor = fHeight / viewHeight;
-            this.left = (int) ((viewWidth - fWidth / scaleFactor) / 2f);
-            this.top = 0;
+        if (viewWidth > 0 && viewHeight > 0) {
+            if (fWidth / viewWidth > height / viewHeight) {
+                // fit width
+                scaleFactor = fWidth / viewWidth;
+                this.left = 0;
+                this.top = (int) ((viewHeight - fHeight / scaleFactor) / 2f);
+            } else {
+                // fit height
+                scaleFactor = fHeight / viewHeight;
+                this.left = (int) ((viewWidth - fWidth / scaleFactor) / 2f);
+                this.top = 0;
+            }
         }
 
         this.scaleFactor = scaleFactor;

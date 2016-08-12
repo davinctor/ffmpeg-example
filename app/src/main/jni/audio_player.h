@@ -5,10 +5,12 @@
 #ifndef FFMPEG_EXAMPLE_AUDIO_PLAYER_H
 #define FFMPEG_EXAMPLE_AUDIO_PLAYER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "math.h"
 #include <android/log.h>
-#include <jni.h>
-#include <string.h>
-#include <pthread.h>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 
@@ -26,7 +28,11 @@
 #define LOGE(...) \
   ((void)__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__))
 
-enum codes {
+typedef enum {
+    NO_VALUE = -1
+} value;
+
+typedef enum {
     SUCCESS = 0,
     ERROR_CREATE_ENGINE_OBJECT = -1,
     ERROR_REALIZE_ENGINE_OBJECT = -2,
@@ -42,7 +48,14 @@ enum codes {
     ERROR_SET_PLAYING_STATE_TO_PAUSED = -12,
     ERROR_SET_PLAYING_STATE_TO_STOPPED = -13,
     ERROR_SET_LOOP = -14,
-};
+    ERROR_SET_VOLUME = -15,
+    ERROR_ENQUEUE_BUFFER_DATA = -16,
+    ERROR_OPEN_ASSET = -17,
+    ERROR_OPEN_FILE_DESCRIPTOR = -18,
+    ERROR_GET_INTERFACE_SEEK = -19,
+    ERROR_GET_INTERFACE_MUTE_SOLO = -20,
+    ERROR_GET_INTERFACE_VOLUME = -21
+} codes;
 
 typedef struct AudioPlayer {
 
@@ -73,7 +86,7 @@ typedef struct AudioPlayer {
     short *resampledBuffer;
 
     // mutex to guard against re-entrance to record and playback
-    pthread_mutex_t audioEngineLock;
+    //pthread_mutex_t audioEngineLock;
 
     // aux effect on the output mix, used by the buffer queue player
     SLEnvironmentalReverbSettings reverbSettings;
@@ -81,43 +94,56 @@ typedef struct AudioPlayer {
     short *nextBuffer;
     unsigned nextSize;
     int nextCount;
+
+    /**
+     * This callback handler is called every time a buffer finishes playing
+     */
+    void (*onBufferPlayFinished) (SLAndroidSimpleBufferQueueItf bufferQueue, void *context);
+
+    void (*audioCallback) (void *userdata, uint8_t *stream, int length);
 } AudioPlayer;
 
 /**
  * Init all resources for OpenSL
  */
-int createEngine(AudioPlayer **audioPlayer);
+int createEngine(AudioPlayer *audioPlayer);
 
 /**
  * Free all resources by OpenSL
  */
-int destroyEngine(AudioPlayer **audioPlayer);
+int destroyEngine(AudioPlayer *audioPlayer);
 
 /**
- * Create buffer queue
+ * Create audio player which playing file from asset
  */
-int initAudioPlayer(AudioPlayer **audioPlayer, int sampleRate, int bufferSize);
-
-int play(AudioPlayer **audioPlayer);
-
-int pause(AudioPlayer **audioPlayer);
-
-int stop(AudioPlayer **audioPlayer);
+int initAssetAudioPlayer(AudioPlayer *audioPlayer, AAssetManager *assetManager, const char* fileName);
 
 /**
- * This callback handler is called every time a buffer finishes playing
+ * Create audio player which playing buffer data
  */
-void onBufferPlayFinished(SLAndroidSimpleBufferQueueItf bufferQueue, void *context);
+int initBufferAudioPlayer(AudioPlayer *audioPlayer, int sampleRate, int bufferSize);
 
-int setLooping(AudioPlayer **audioPlayer, bool isLooping);
+int play(AudioPlayer *audioPlayer);
 
-SLVolumeItf getVolume();
-void setVolume(int milliBel);
+int pause(AudioPlayer *audioPlayer);
+
+int stop(AudioPlayer *audioPlayer);
+
+int enqueueBufferData(AudioPlayer *audioPlayer, int16_t *data, int size);
+
+int setLooping(AudioPlayer *audioPlayer, bool isLooping);
+
+int getVolume(AudioPlayer *audioPlayer);
+int setVolume(AudioPlayer *audioPlayer, float volumeFactor);
 
 void setMute(bool isMute);
 
 void setEnableStereoPosition(bool isEnable);
 
 void setStereoPosition(int perMille);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //FFMPEG_EXAMPLE_AUDIO_PLAYER_H
