@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 
-set(ffmpeg D:/Work/SkyDrive/Projects/AndroidStudioProjects/ffmpeg-example/ffmpeg)
+set(ffmpeg /home/davinctor/AndroidStudioProjects/ffmpeg-example/ffmpeg)
 
 add_library(libavcodec SHARED IMPORTED)
 set_target_properties(libavcodec PROPERTIES IMPORTED_LOCATION ${ffmpeg}/libavcodec/lib/${ANDROID_ABI}/libavcodec.so)

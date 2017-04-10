@@ -4,7 +4,7 @@ def ffmpeg_root = '../ffmpeg';
 
 android {
     compileSdkVersion = 24
-    buildToolsVersion = '25.0.0'
+    buildToolsVersion = '25.0.2'
 
     defaultConfig {
         applicationId = 'tk.davinctor.jni3rdpartylibsample'
@@ -20,7 +20,7 @@ android {
 //                cFlags "-DTEST_C_FLAG1", "-DTEST_C_FLAG2"
 //                cppFlags "-DTEST_CPP_FLAG2", "-DTEST_CPP_FLAG2"
 //                abiFilters "armeabi-v7a", "armeabi"
-                //arguments "-DANDROID_TOOLCHAIN=clang"
+                arguments "-DANDROID_TOOLCHAIN=clang"
                 cppFlags "-Wformat-security"
                 abiFilters 'armeabi', 'armeabi-v7a'
             }
